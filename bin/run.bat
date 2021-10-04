@@ -18,7 +18,7 @@ if NOT DEFINED JAVA_HOME (
 
 set FILE_TRANSFEROR_HOME=%CD%
 set CLASS_PATH="%FILE_TRANSFEROR_HOME%/config";"%FILE_TRANSFEROR_HOME%/lib/*"
-set BOOT_JAR="%FILE_TRANSFEROR_HOME%/file-transferor-boot.jar"
+set BOOT_JAR="%FILE_TRANSFEROR_HOME%\boot\file-transferor-boot.jar"
 set JVM_OPT=-server -Xms256m -Xmx256m -Xmn512m^
     -XX:MetaspaceSize=48m^
     -XX:MaxMetaspaceSize=256m^
