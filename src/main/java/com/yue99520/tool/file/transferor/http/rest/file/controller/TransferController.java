@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -41,14 +42,17 @@ public class TransferController {
     @PostMapping(value = "/receive")
     @ResponseBody
     public ResponseEntity<ReceiveFileResponse> receive(
-            @RequestParam("file") MultipartFile file,
+            @RequestParam("file") MultipartFile multipartFile,
             @RequestParam("filename") String filename) {
-        long filesize = file.getSize();
+        long filesize = multipartFile.getSize();
         filename = Base64Utils.decode(filename);
         logger.info("Receiving file, name={}, size={}", filename, filesize);
         try {
-            InputStream fileInputStream = file.getInputStream();
-            fileTransferService.receive(fileInputStream, filename);
+            InputStream fileInputStream = multipartFile.getInputStream();
+            File file = fileTransferService.receive(fileInputStream, filename);
+            if (!file.exists()) {
+                throw new FileReceiveException("No error on receiving but the file is not exist after saving.");
+            }
             return ResponseEntity.ok(ReceiveFileResponse.newBuilder()
                     .withFilename(filename)
                     .withSize(filesize)
