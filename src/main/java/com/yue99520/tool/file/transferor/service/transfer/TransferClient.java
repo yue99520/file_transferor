@@ -2,7 +2,6 @@ package com.yue99520.tool.file.transferor.service.transfer;
 
 import com.yue99520.tool.file.transferor.exception.FileSendException;
 import com.yue99520.tool.file.transferor.exception.PartnerConnectionError;
-import com.yue99520.tool.file.transferor.service.security.PartnerSecurityService;
 import com.yue99520.tool.file.transferor.util.Base64Utils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -26,12 +25,10 @@ public class TransferClient {
     public static final String FILE_RECEIVE_URI = "/file/transfer/receive";
     private final String fileReceiveApiUrl;
     private final HttpClient httpClient;
-    private final String key;
 
-    public TransferClient(String host, int port, String key) {
-        this.key = key;
+    public TransferClient(String protocol, String host, int port) {
         httpClient = HttpClientBuilder.create().build();
-        fileReceiveApiUrl = String.format("%s:%d%s", host, port, FILE_RECEIVE_URI);
+        fileReceiveApiUrl = String.format("%s://%s:%d%s", protocol, host, port, FILE_RECEIVE_URI);
     }
 
     public void send(File file, String originalName) throws FileSendException {
@@ -41,7 +38,6 @@ public class TransferClient {
                 .addPart("filename", new StringBody(Base64Utils.encode(originalName), ContentType.DEFAULT_BINARY))
                 .build();
         HttpPost post = new HttpPost(fileReceiveApiUrl);
-        post.addHeader(PartnerSecurityService.PARTNER_ACCESS_KEY_HEADER, key);
         post.setEntity(entity);
         try {
             HttpResponse response = httpClient.execute(post);
@@ -55,11 +51,11 @@ public class TransferClient {
     private void validateStatus200(HttpResponse response) throws FileSendException {
         StatusLine statusLine = response.getStatusLine();
         if (statusLine == null) {
-            throw new PartnerConnectionError(String.format("Partner response empty status line. response=%s", response));
+            throw new PartnerConnectionError(String.format("Agent response empty status line. response=%s", response));
         }
         int statusCode = statusLine.getStatusCode();
         if (statusCode != 200) {
-            throw new FileSendException(String.format("Partner response http %d. response=%s", statusCode, response));
+            throw new FileSendException(String.format("Agent response http %d. response=%s", statusCode, response));
         }
     }
 }

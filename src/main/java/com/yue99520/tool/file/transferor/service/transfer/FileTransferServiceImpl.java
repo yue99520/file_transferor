@@ -1,13 +1,12 @@
 package com.yue99520.tool.file.transferor.service.transfer;
 
+import com.yue99520.tool.file.transferor.dao.Agent;
 import com.yue99520.tool.file.transferor.exception.FileReceiveException;
 import com.yue99520.tool.file.transferor.exception.FileSendException;
-import com.yue99520.tool.file.transferor.service.connection.Partner;
 import com.yue99520.tool.file.transferor.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -22,19 +21,19 @@ public class FileTransferServiceImpl implements FileTransferService{
 
     private final FileUtil fileUtil;
 
-    @Value("${my.key}")
-    private String accessKey;
-
     @Autowired
     public FileTransferServiceImpl(FileUtil fileUtil) {
         this.fileUtil = fileUtil;
     }
 
     @Override
-    public void send(InputStream fileStream, String originalName, Partner partner) throws FileSendException {
+    public void send(InputStream fileStream, String originalName, Agent agent) throws FileSendException {
         try {
             File file = fileUtil.saveAsTemp(fileStream, originalName);
-            TransferClient partnerClient = new TransferClient(partner.getHost(), partner.getPort(), accessKey);
+            TransferClient partnerClient = new TransferClient(
+                    agent.getProtocol(),
+                    agent.getHost(),
+                    agent.getPort());
             partnerClient.send(file, originalName);
 
             if (!file.delete()) {
@@ -46,9 +45,11 @@ public class FileTransferServiceImpl implements FileTransferService{
     }
 
     @Override
-    public File receive(InputStream fileInputStream, String filename) throws FileReceiveException {
+    public File receive(InputStream fileInputStream, String filename, Agent agent) throws FileReceiveException {
         try {
-            return fileUtil.save(filename, fileInputStream);
+            File result = fileUtil.save(filename, fileInputStream);
+            logger.info("received file from agent: {}, ip: {}:{}.", agent.getName(), agent.getHost(), agent.getPort());
+            return result;
         } catch (IOException e) {
             logger.error("fail to receive file.", e);
             throw new FileReceiveException("Error at saving file.", e);

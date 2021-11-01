@@ -56,6 +56,7 @@ public class FileUtil {
                 StandardOpenOption.TRUNCATE_EXISTING);
         appendStream(fileOutputStream, inputStream);
         fileOutputStream.close();
+        inputStream.close();
         return expectFilePath.toFile();
     }
 
@@ -63,15 +64,14 @@ public class FileUtil {
         FileOutputStream outputStream = new FileOutputStream(file, true);
         appendStream(outputStream, inputStream);
         outputStream.close();
+        inputStream.close();
     }
 
     private void appendStream(OutputStream toOutputStream, InputStream inputStream) throws IOException {
         byte[] buf = new byte[512];
-        try (toOutputStream) {
-            int size;
-            while ((size = inputStream.read(buf)) != -1) {
-                toOutputStream.write(buf, 0, size);
-            }
+        int size;
+        while ((size = inputStream.read(buf)) != -1) {
+            toOutputStream.write(buf, 0, size);
         }
     }
 

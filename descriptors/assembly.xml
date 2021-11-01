@@ -20,7 +20,15 @@
       <outputDirectory>bin</outputDirectory>
       <fileMode>0755</fileMode>
       <includes>
-        <include>**.bat</include>
+        <include>run.bat</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>${basedir}/bin</directory>
+      <outputDirectory>.</outputDirectory>
+      <fileMode>0755</fileMode>
+      <includes>
+        <include>FileTransferor.bat</include>
       </includes>
     </fileSet>
     <fileSet>

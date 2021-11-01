@@ -1,20 +1,12 @@
-package com.yue99520.tool.file.transferor.service.connection;
+package com.yue99520.tool.file.transferor.dto;
 
-public class Partner {
-
-    private String name;
+public class WriteAgentDto {
 
     private String host;
 
     private int port;
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
+    private String protocol;
 
     public String getHost() {
         return host;
@@ -30,5 +22,13 @@ public class Partner {
 
     public void setPort(int port) {
         this.port = port;
+    }
+
+    public String getProtocol() {
+        return protocol;
+    }
+
+    public void setProtocol(String protocol) {
+        this.protocol = protocol;
     }
 }

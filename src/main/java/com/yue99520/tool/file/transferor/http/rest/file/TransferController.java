@@ -1,13 +1,14 @@
-package com.yue99520.tool.file.transferor.http.rest.file.controller;
+package com.yue99520.tool.file.transferor.http.rest.file;
 
+import com.yue99520.tool.file.transferor.dao.Agent;
 import com.yue99520.tool.file.transferor.exception.FileReceiveException;
 import com.yue99520.tool.file.transferor.exception.FileSendException;
+import com.yue99520.tool.file.transferor.http.ValidatePartnerInterceptor;
 import com.yue99520.tool.file.transferor.http.rest.file.request.ReceiveFileResponse;
 import com.yue99520.tool.file.transferor.http.rest.file.request.SendFileResponse;
-import com.yue99520.tool.file.transferor.service.connection.ConnectionService;
-import com.yue99520.tool.file.transferor.service.connection.Partner;
-import com.yue99520.tool.file.transferor.service.security.ValidateLocalhost;
-import com.yue99520.tool.file.transferor.service.security.ValidatePartner;
+import com.yue99520.tool.file.transferor.service.agent.AgentService;
+import com.yue99520.tool.file.transferor.service.security.AllowLocal;
+import com.yue99520.tool.file.transferor.service.security.AllowPartners;
 import com.yue99520.tool.file.transferor.service.transfer.FileTransferService;
 import com.yue99520.tool.file.transferor.util.Base64Utils;
 import org.slf4j.Logger;
@@ -21,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Optional;
 
 
 @RestController
@@ -30,26 +32,27 @@ public class TransferController {
     private static final Logger logger = LoggerFactory.getLogger(TransferController.class);
 
     private final FileTransferService fileTransferService;
-    private final ConnectionService connectionService;
+    private final AgentService agentService;
 
     @Autowired
-    public TransferController(FileTransferService fileTransferService, ConnectionService connectionService) {
+    public TransferController(FileTransferService fileTransferService, AgentService agentService) {
         this.fileTransferService = fileTransferService;
-        this.connectionService = connectionService;
+        this.agentService = agentService;
     }
 
-    @ValidatePartner
+    @AllowPartners
     @PostMapping(value = "/receive")
     @ResponseBody
     public ResponseEntity<ReceiveFileResponse> receive(
             @RequestParam("file") MultipartFile multipartFile,
-            @RequestParam("filename") String filename) {
+            @RequestParam("filename") String filename,
+            @RequestAttribute(ValidatePartnerInterceptor.REQUEST_ATTR_PARTNER) Agent remoteAgent) {
         long filesize = multipartFile.getSize();
         filename = Base64Utils.decode(filename);
         logger.info("Receiving file, name={}, size={}", filename, filesize);
         try {
             InputStream fileInputStream = multipartFile.getInputStream();
-            File file = fileTransferService.receive(fileInputStream, filename);
+            File file = fileTransferService.receive(fileInputStream, filename, remoteAgent);
             if (!file.exists()) {
                 throw new FileReceiveException("No error on receiving but the file is not exist after saving.");
             }
@@ -79,17 +82,25 @@ public class TransferController {
         }
     }
 
-    @ValidateLocalhost
+    @AllowLocal
     @PostMapping(value = "/send")
-    public ResponseEntity<SendFileResponse> send(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<SendFileResponse> send(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("agent") String agentName) {
+
         String filename = file.getOriginalFilename();
         long filesize = file.getSize();
         logger.info("Sending file, name={}, size={}", filename, filesize);
         try {
             InputStream fileInputStream = file.getInputStream();
             String originalName = file.getOriginalFilename();
-            Partner partner = connectionService.getPartner();
-            fileTransferService.send(fileInputStream, originalName, partner);
+            Optional<Agent> optionalAgent = agentService.getAgentByName(agentName);
+            if (optionalAgent.isEmpty()) {
+                logger.debug("Agent \"{}\" does not exist.", agentName);
+                throw new FileSendException("Agent does not exist.");
+            }
+
+            fileTransferService.send(fileInputStream, originalName, optionalAgent.get());
             logger.info("successfully send file.");
             return ResponseEntity.ok(SendFileResponse.newBuilder()
                     .withFilename(filename)

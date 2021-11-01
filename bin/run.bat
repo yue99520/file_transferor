@@ -1,4 +1,5 @@
 @echo off
+TITLE FileTransferor Service
 setlocal enabledelayedexpansion
 
 if "%OS%"=="Windows_NT" goto nt
